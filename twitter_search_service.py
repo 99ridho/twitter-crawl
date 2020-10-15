@@ -11,7 +11,7 @@ class TweetSearchData:
     def __repr__(self):
         return f'TweetSearchData(id = {self.id}, text = {self.text}, type = {self.type})'
 
-class TwitterService:
+class TwitterSearchService:
     def __init__(self):
         self.http_client = HTTPClient()
         self.bearer_token = BEARER_TOKEN

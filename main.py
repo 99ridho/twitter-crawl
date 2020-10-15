@@ -1,8 +1,8 @@
-from twitter_service import TwitterService
+from twitter_search_service import TwitterSearchService
 from asyncio import (get_event_loop)
 
 async def main():
-    svc = TwitterService()
+    svc = TwitterSearchService()
     tweets = await svc.get_recent_tweet_search('omnibus law')
     for tweet in tweets:
         print(tweet)
