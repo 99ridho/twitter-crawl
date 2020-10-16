@@ -38,6 +38,6 @@ async def main_async(argv):
         if not t:
             break
         tws += t.data
-    print(jsonpickle.encode(tws, unpicklable=False, indent=2))
+    print(jsonpickle.encode({'tweets': tws}, unpicklable=False, indent=2))
 
 asyncio.run(main_async(sys.argv[1:]))

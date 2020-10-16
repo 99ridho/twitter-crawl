@@ -5,16 +5,8 @@ from urllib.parse import parse_qsl
 import asyncio
 import json
 
-class TweetSearchData:
-    def __init__(self, id: str, text: str):
-        self.id = id
-        self.text = text
-
-    def __repr__(self):
-        return f'TweetSearchData(id = {self.id}, text = {self.text})'
-
 class TweetSearchResponse:
-    def __init__(self, data: List[TweetSearchData], next_token: str):
+    def __init__(self, data: List[str], next_token: str):
         self.data = data
         self.next_token = next_token
 
@@ -30,7 +22,7 @@ class TwitterSearchService:
         self.max_item_count = max_item_count
         self.__lock = asyncio.Lock()
 
-    def __make_search_data(self, tweet: Any) -> TweetSearchData:
+    def __make_search_data(self, tweet: Any) -> str:
         text = tweet['text']
 
         if 'extended_tweet' in tweet:
@@ -40,10 +32,7 @@ class TwitterSearchService:
             if 'extended_tweet' in tweet['retweeted_status']:
                 text = tweet['retweeted_status']['extended_tweet']['full_text']
 
-        return TweetSearchData(
-            id=tweet['id_str'],
-            text=text
-        )
+        return text
 
     async def __get_recent_tweet_search(self, params: Dict[str, any]) -> Optional[TweetSearchResponse]:
         headers: Dict[str, str] = {
@@ -66,7 +55,14 @@ class TwitterSearchService:
             return None
 
         self.next_token = json['next']
-        tweets = list(map(self.__make_search_data, json['results']))
+        
+        tweets = []
+        tweets_temp = list(map(self.__make_search_data, json['results']))
+
+        for t in tweets_temp:
+            if t not in tweets:
+                tweets.append(t)
+
         return TweetSearchResponse(data=tweets, next_token=self.next_token)
 
     async def get_next_results(self) -> Optional[TweetSearchResponse]:
