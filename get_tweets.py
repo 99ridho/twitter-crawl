@@ -4,13 +4,19 @@ import jsonpickle
 import sys
 import getopt
 
+def write_file(filename, data):
+    f = open(filename, 'w+')
+    f.writelines(data)
+    f.close()
+
 async def main_async(argv):
     item_count = 0
     number_of_request = 0
     query = ''
+    filename = ''
 
     try:
-        opts, args = getopt.getopt(argv, 'q:n:r:', ['query,', 'number-of-request', 'item-per-request'])
+        opts, args = getopt.getopt(argv, 'q:n:r:o:', ['query,', 'number-of-request', 'item-per-request', '--output-file'])
     except getopt.GetoptError:
         print('main.py -q <query> -n <number_of_request> -r <item_per_request>')
         sys.exit(2)
@@ -22,6 +28,8 @@ async def main_async(argv):
             number_of_request = int(arg)
         elif opt in ('-r', '--item-per-request'):
             item_count = int(arg)
+        elif opt in ('-o', '--output-file'):
+            filename = arg
         else:
             item_count = 10
             number_of_request = 1
@@ -38,6 +46,12 @@ async def main_async(argv):
         if not t:
             break
         tws += t.data
-    print(jsonpickle.encode({'tweets': tws}, unpicklable=False, indent=2))
+
+    json = jsonpickle.encode({'tweets': tws}, unpicklable=False, indent=2)
+
+    if not filename:
+        print(json)
+    else:
+        write_file(filename, json)
 
 asyncio.run(main_async(sys.argv[1:]))
