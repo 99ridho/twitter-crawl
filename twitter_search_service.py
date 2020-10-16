@@ -1,6 +1,9 @@
 from http_client import (HTTPClient, HTTPRequestData)
 from typing import (Optional, Any, Dict, List)
 from config import BEARER_TOKEN
+from urllib.parse import parse_qsl
+import asyncio
+import json
 
 class TweetSearchData:
     def __init__(self, id: str, text: str, type: str):
@@ -11,10 +14,22 @@ class TweetSearchData:
     def __repr__(self):
         return f'TweetSearchData(id = {self.id}, text = {self.text}, type = {self.type})'
 
+class TweetSearchResponse:
+    def __init__(self, data: List[TweetSearchData], next_result: str):
+        self.data = data
+        self.next_result = next_result
+
+    def __repr__(self):
+        return f'Response(data = {self.data}, next_result = {self.next_result})'
+
 class TwitterSearchService:
-    def __init__(self):
+    def __init__(self, query: str, max_item_count: int):
         self.http_client = HTTPClient()
         self.bearer_token = BEARER_TOKEN
+        self.next_result_query = ''
+        self.query = query
+        self.max_item_count = max_item_count
+        self.__lock = asyncio.Lock()
 
     def __make_search_data(self, tweet: Any) -> TweetSearchData:
         return TweetSearchData(
@@ -23,15 +38,7 @@ class TwitterSearchService:
             type=tweet['metadata']['result_type']
         )
 
-    async def get_recent_tweet_search(self, query: str) -> Optional[List[TweetSearchData]]:
-        params: Dict[str, any] = {
-            'q': f'{query} -filter:retweets',
-            'count': 100,
-            'include_entities': 'false',
-            'tweet_mode': 'extended',
-            'result_type': 'mixed'
-        }
-
+    async def __get_recent_tweet_search(self, params: Dict[str, any]) -> Optional[TweetSearchResponse]:
         headers: Dict[str, str] = {
             'Authorization': f'Bearer {self.bearer_token}'         
         }
@@ -45,10 +52,30 @@ class TwitterSearchService:
         )
 
         json = await self.http_client.request(request_data)
-
         if json is None:
             return None
 
-        tweets = set(map(self.__make_search_data, json['statuses']))
+        if 'next_results' not in json['search_metadata']:
+            return None
 
-        return tweets
+        self.next_result_query = json['search_metadata']['next_results']
+        tweets = list(map(self.__make_search_data, json['statuses']))
+        return TweetSearchResponse(data=tweets, next_result=self.next_result_query)
+
+    async def get_next_results(self) -> Optional[TweetSearchResponse]:
+        async with self.__lock:
+            param = {
+                'q': f'{self.query} -filter:retweets',
+                'count': self.max_item_count,
+                'include_entities': 'false',
+                'tweet_mode': 'extended',
+                'result_type': 'mixed'
+            }
+
+            if not self.next_result_query:
+                return await self.__get_recent_tweet_search(param)
+
+            new_param = dict(parse_qsl(self.next_result_query[1:]))
+            param['max_id'] = new_param['max_id']
+
+            return await self.__get_recent_tweet_search(param)
