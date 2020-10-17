@@ -1,3 +1,7 @@
 python-dotenv
 aiohttp
 jsonpickle
+demoji
+pandas
+PySastrawi
+sklearn
