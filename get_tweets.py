@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from twitter_search_service import TwitterSearchService
 import asyncio
 import jsonpickle
@@ -47,11 +49,28 @@ async def main_async(argv):
             break
         tws += t.data
 
-    json = jsonpickle.encode({'tweets': tws}, unpicklable=False, indent=2)
+    splits_filename = filename.split('.')
+    file_ext = splits_filename[len(splits_filename) - 1]
 
-    if not filename:
-        print(json)
+    if file_ext.lower() == 'json':
+        obj = {
+            'tweets': list(map(lambda t: {'tweet': t, 'category': '{positif/negatif}'}, tws))
+        }
+        json = jsonpickle.encode(obj, unpicklable=False, indent=2)
+
+        if not filename:
+            print(json)
+        else:
+            write_file(filename, json)
     else:
-        write_file(filename, json)
+        # write csv instead
+        rows = 'category,tweet'
+        for t in tws:
+            rows += f'\npositif/negatif,{t!r}'
+
+        if not filename:
+            print(rows)
+        else:
+            write_file(filename, rows)
 
 asyncio.run(main_async(sys.argv[1:]))

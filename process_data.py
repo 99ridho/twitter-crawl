@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import json
 import getopt
@@ -7,6 +7,8 @@ import re
 import string
 import demoji
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
+import jsonpickle
+from sklearn.feature_extraction.text import CountVectorizer
 
 demoji.download_codes()
 
@@ -61,6 +63,18 @@ def stem(data):
 
     return list(map(lambda s: stemmer.stem(s), new_data))
 
+def get_term(data):
+    new_data = data.copy()
+    count_vectorizer = CountVectorizer()
+    feature_names = []
+
+    for t in new_data:
+        count_vectorizer.fit(t)
+        feature_names.append(count_vectorizer.get_feature_names())
+
+    return feature_names
+    
+
 def main(argv):
     file_name = ''
 
@@ -83,7 +97,5 @@ def main(argv):
     lower_cased_tweets = case_fold(cleaned_tweets)
     stemmed_tweets = stem(lower_cased_tweets)
     tokenized_tweets = tokenize(stemmed_tweets)
-    
-    print(tokenized_tweets)
 
 main(sys.argv[1:])
