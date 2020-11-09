@@ -5,3 +5,5 @@ demoji
 pandas
 PySastrawi
 sklearn
+numpy
+matplotlib
